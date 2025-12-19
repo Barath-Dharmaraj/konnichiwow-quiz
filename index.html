@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KonnichiWow – Practice Quiz</title>
+
+<style>
+:root{
+  --pink:#EC265F;
+  --mint:#26ECB4;
+  --bg:#F6F7FB;
+  --card:#ffffff;
+  --gray:#e6e6e6;
+}
+
+*{box-sizing:border-box;font-family:Inter,Arial,sans-serif}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,#fff,var(--bg));
+  display:flex;
+  justify-content:center;
+}
+
+.app{
+  width:100%;
+  max-width:1200px;
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* HEADER */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.brand img{
+  width:52px;
+}
+.stats{
+  display:flex;
+  gap:12px;
+}
+.pill{
+  background:#fff;
+  padding:8px 16px;
+  border-radius:999px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  font-weight:600;
+}
+
+/* PROGRESS */
+.progress-area{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.progress{
+  height:12px;
+  background:var(--gray);
+  border-radius:12px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--pink),var(--mint));
+  transition:.4s;
+}
+.timer{
+  height:6px;
+  background:#ddd;
+  border-radius:6px;
+  overflow:hidden;
+}
+.timer-bar{
+  height:100%;
+  width:100%;
+  background:var(--pink);
+  transition:width 1s linear;
+}
+
+/* MAIN */
+.main{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.card{
+  width:100%;
+  max-width:900px;
+  background:#fff;
+  border-radius:26px;
+  padding:90px 36px 36px;
+  box-shadow:0 24px 48px rgba(0,0,0,.14);
+  position:relative;
+}
+
+/* MASCOT */
+.mascot{
+  position:absolute;
+  top:-70px;
+  right:32px;
+  width:120px;
+}
+.speech{
+  position:absolute;
+  top:40px;
+  right:180px;
+  background:#fff;
+  padding:10px 14px;
+  border-radius:14px;
+  font-size:.85rem;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);
+}
+
+/* QUESTION */
+.question{
+  font-size:1.5rem;
+  margin-bottom:28px;
+}
+.options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+.option{
+  padding:18px;
+  border-radius:18px;
+  border:2px solid var(--gray);
+  background:#fff;
+  cursor:pointer;
+}
+.option.correct{
+  background:#e8fff8;
+  border-color:var(--mint);
+}
+.option.wrong{
+  background:#ffe9ef;
+  border-color:var(--pink);
+}
+
+/* BUTTONS */
+.btn{
+  margin-top:24px;
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:18px;
+  background:var(--pink);
+  color:#fff;
+  font-size:1rem;
+  cursor:pointer;
+}
+.btn.alt{
+  background:var(--mint);
+  color:#000;
+}
+
+.feedback{
+  margin-top:18px;
+  padding:16px;
+  border-radius:16px;
+}
+.feedback.correct{background:#e8fff8}
+.feedback.wrong{background:#ffe9ef}
+
+@media(max-width:768px){
+  .options{grid-template-columns:1fr}
+  .speech{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <div class="brand">
+    <img src="logo.jpg">
+    <h1 style="color:var(--pink)">Practice Quiz</h1>
+  </div>
+  <div class="stats">
+    <div class="pill" id="best">🏆 0</div>
+    <div class="pill" id="streak">🔥 0</div>
+  </div>
+</header>
+
+<div class="progress-area">
+  <div id="counter"></div>
+  <div class="progress"><div class="progress-bar" id="progress"></div></div>
+  <div class="timer"><div class="timer-bar" id="timer"></div></div>
+</div>
+
+<div class="main">
+  <div class="card" id="card"></div>
+</div>
+
+</div>
+
+<script>
+const qns=[
+ {q:"HTML stands for?",o:["Hyper Trainer","Hyper Text Markup Language","High Text","Hyper Tool"],a:1,e:"HTML structures webpages"},
+ {q:"CSS is used for?",o:["Logic","Styling","Database","Hosting"],a:1,e:"CSS styles webpages"},
+ {q:"JS runs in?",o:["Browser","Compiler","OS","CPU"],a:0,e:"JS runs in browsers"},
+ {q:"Not a JS framework?",o:["React","Vue","Angular","Django"],a:3,e:"Django is Python"},
+ {q:"Git is used for?",o:["Design","Version Control","Testing","Deploy"],a:1,e:"Git tracks changes"}
+];
+
+let i=0,score=0,streak=0,bestStreak=0,time=12,timer;
+const card=document.getElementById("card");
+const counter=document.getElementById("counter");
+const progress=document.getElementById("progress");
+const timerBar=document.getElementById("timer");
+const streakBox=document.getElementById("streak");
+const best=document.getElementById("best");
+
+best.textContent="🏆 "+(localStorage.best||0);
+
+function startTimer(){
+ clearInterval(timer);
+ time=12;
+ timerBar.style.width="100%";
+ timer=setInterval(()=>{
+  time--;
+  timerBar.style.width=(time/12*100)+"%";
+  if(time<=0){clearInterval(timer);answer(-1);}
+ },1000);
+}
+
+function mascot(type){
+ const m=document.querySelector(".mascot");
+ const s=document.querySelector(".speech");
+ if(type==="c"){m.src="mascot-happy.jpg";s.textContent="Nice! 🎉";}
+ else if(type==="w"){m.src="mascot-sad.jpg";s.textContent="Oops! 😅";}
+ else{s.textContent="Think carefully 👀";}
+}
+
+function render(){
+ const q=qns[i];
+ counter.textContent=`Question ${i+1} of ${qns.length}`;
+ progress.style.width=(i/qns.length*100)+"%";
+
+ card.innerHTML=`
+  <img src="mascot.jpg" class="mascot">
+  <div class="speech">Think carefully 👀</div>
+
+  <div class="question">${q.q}</div>
+  <div class="options">
+    ${q.o.map((x,j)=>`<button class="option" onclick="answer(${j})">${x}</button>`).join("")}
+  </div>
+ `;
+ startTimer();
+}
+
+function answer(sel){
+ clearInterval(timer);
+ const q=qns[i];
+ document.querySelectorAll(".option").forEach(b=>b.disabled=true);
+
+ if(sel===q.a){
+  score++;streak++;bestStreak=Math.max(bestStreak,streak);
+  mascot("c");
+ }else{
+  streak=0;
+  mascot("w");
+ }
+
+ streakBox.textContent="🔥 "+streak;
+
+ const fb=document.createElement("div");
+ fb.className="feedback "+(sel===q.a?"correct":"wrong");
+ fb.innerHTML=(sel===q.a?"Correct":"Wrong")+"<br>"+q.e;
+ card.appendChild(fb);
+
+ const btn=document.createElement("button");
+ btn.className="btn";
+ btn.textContent=i===qns.length-1?"Finish":"Next";
+ btn.onclick=()=>{i++;i<qns.length?render():summary()};
+ card.appendChild(btn);
+}
+
+function summary(){
+ localStorage.best=Math.max(localStorage.best||0,score);
+ card.innerHTML=`
+  <h2>🎉 Summary</h2>
+  <p>Score: ${score}/${qns.length}</p>
+  <p>Accuracy: ${Math.round(score/qns.length*100)}%</p>
+  <p>Best Streak: ${bestStreak}</p>
+  <button class="btn" onclick="review()">Review</button>
+  <button class="btn alt" onclick="restart()">Restart</button>
+ `;
+}
+
+function review(){
+ card.innerHTML="<h2>Review</h2>"+qns.map((q,i)=>`
+  <div class="feedback correct">
+   <b>Q${i+1}:</b> ${q.q}<br>✔ ${q.o[q.a]}<br><i>${q.e}</i>
+  </div>
+ `).join("")+`<button class="btn alt" onclick="restart()">Restart</button>`;
+}
+
+function restart(){
+ i=0;score=0;streak=0;bestStreak=0;
+ streakBox.textContent="🔥 0";
+ render();
+}
+
+document.addEventListener("keydown",e=>{
+ if(e.key>='1'&&e.key<='4'){
+  document.querySelectorAll(".option")[e.key-1]?.click();
+ }
+});
+
+render();
+</script>
+
+</body>
+</html>
